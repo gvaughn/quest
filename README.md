@@ -98,7 +98,7 @@ more clear in our next code example of an API client module that makes use of th
 ```elixir
 defmodule NeatoService do
   @default_q %Quest{
-    dispatcher: HTTPoisonRequestDispatcher,
+    dispatcher: Quest.HTTPoisonDispatcher,
     params: %{},
     base_url: "https://api.neato.com/v1/",
     adapter_options: [recv_timeout: 20000]
@@ -178,18 +178,39 @@ end
 By supplying the `dispatcher` in that optional 2nd parameter to
 `NeatoService.client` you can provide canned responses. That
 `mocked_dispatcher` could even do its own assertions if it makes sense. The
-overidden value of `dispatcher`, `HTTPoisonRequestDispatcher` is rather
-pedestrian, but can be found here (TODO). Each test will have its own instance
+overidden value of `dispatcher`, `HTTPoisonDispatcher` is rather
+pedestrian, but can be found [here](https://github.com/gvaughn/quest/blob/master/lib/quest/httpoison_dispatcher.ex). Each test will have its own instance
 of the `Quest` struct, which will each contain their own anonymous function
 overriding the `dispatcher` field, and can therfore be run in parallel.
 
 The `dispatcher` can also be something more app-specific. It might be a wrapper around
-`Tesla`. Maybe you're a `gun` nut. Or maybe you want to `mint` your lower level interactions.
+`Tesla`. Maybe you prefer `gun`. Or maybe you want to `mint` your lower level interactions.
 It might log/send metrics/throttle outgoing calls. The choice is up to you. The
 core idea is that you could make assertions against building up a proper `Quest` struct
 as well as providing canned, asychronous-friendly responses in your tests. Using this
 10+ times, my co-workers and I have found this a clear way to quickly build new, flexible,
 API clients, and to keep our tests running efficiently.
 
-Love it? Hate it? Other? I'd appreciate your feedback via email or twitter (@gregvaughn)
+## The Con
 
+In normal production code use, you'll have an extra call to `NeatoService.client/1`
+before a second call that really dispatches the Quest.
+That client can be reused or cached in most cases when you have multiple calls to make
+to the same service. I find it to be a worthwhile tradeoff for the testing
+advantages it gains us.
+
+## Further Possibilities
+
+Once we adopt this Quest struct, there's more that can be done. I've created a
+concept I call a `Gateway` that wraps the dispatcher to provide consistent
+logging, metrics, outgoing throttling, and retry logic. I've also begun extracting
+for reuse an `Unpager` module that can take API calls that have paged results and
+wrap them in a `Stream` for the rest of my business logic to easily consume. Reuse
+of these are made possible because they can rely on the common `Quest` struct as
+a data structure that represents an action.
+
+Love it? Hate it? Other? I'd appreciate your feedback via email or Twitter (@gregvaughn)
+
+*Special thanks to my employer [Seat Scouts](http://seatscouts.com) for allowing
+me to extract and share these examples, and for my co-workers who have experimented
+with them with me.*
