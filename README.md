@@ -15,7 +15,7 @@ tests that called any particular service. With the Quest approach, we can keep E
 
 I took inspiration from other libraries in the Elixir ecosystem, specifically the
 `Plug.Conn` and `Ecto.Changeset`. Both are structs that we update in steps according
-to our business logic, then at the end, concptually "execute" them. It is related to
+to our business logic, then at the end, conceptually "execute" them. It is related to
 `Enum.reduce` over an accumulator, and in some circles the functions that perform
 the updates are known as 'reducers'. Rene Föhring gave a [talk](https://www.youtube.com/watch?v=ycpNi701aCs&t=1s) at ElixirConf US 2018
 calling the structs "tokens".
