@@ -3,7 +3,7 @@ defmodule QuestTest do
   doctest Quest
 
   test "accumulates headers" do
-    q = %Quest{headers: [{"X-extra", "garden-gnome"}]}
+    q = %Quest{headers: [{"X-extra", "garden-gnome"}], destiny: "garden", dispatcher: :dummy}
 
     q =
       [headers: [{"X-extra", "rainbow-unicorn"}]]

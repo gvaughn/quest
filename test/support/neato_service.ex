@@ -1,6 +1,7 @@
 defmodule Quest.NeatoService do
   @default_q %Quest{
     dispatcher: Quest.HTTPoisonDispatcher,
+    destiny: "neato",
     params: %{},
     base_url: "https://api.neato.com/v1/",
     adapter_options: [recv_timeout: 20000]
@@ -12,13 +13,13 @@ defmodule Quest.NeatoService do
     |> Enum.into(@default_q)
   end
 
-  def things(req, params \\ []) do
-    http_req(req, path: "things", params: params)
+  def things(%Quest{} = q, params \\ []) do
+    http_req(q, path: "things", params: params)
   end
 
-  defp http_req(req, options) do
+  defp http_req(q, options) do
     options
-    |> Enum.into(req)
+    |> Enum.into(q)
     |> Quest.dispatch()
   end
 end
