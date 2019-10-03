@@ -111,26 +111,71 @@ defmodule Quest do
 
   defimpl Collectable do
     @collectable_struct_members [:params, :headers, :adapter_options, :appmeta]
+    @replaceable_struct_members %Quest{
+                                  dispatcher: :dummy,
+                                  destiny: :dummy
+                                }
+                                |> Map.keys()
+                                |> Kernel.--(@collectable_struct_members)
+                                |> Kernel.--([:__struct__])
 
-    def into(q) do
-      {q, &collector/2}
+    def into(req) do
+      {req, &collector/2}
     end
 
-    defp collector(q, {:cont, {key, value}}) when key in @collectable_struct_members do
-      updated_value =
-        case Map.get(q, key) do
-          current_value when is_map(current_value) -> Enum.into(value, current_value)
-          current_value when is_list(current_value) -> Enum.to_list(value) ++ current_value
+    defp collector(%{base_url: nil} = req, {:cont, {:base_url, _value} = update}) do
+      struct!(req, [update])
+    end
+
+    # Special case: We break base_url down to set params by query string and figure out path
+    # Useful for HAL-style links. Set the base_url to the embedded link and the Request is
+    # ready to run
+    defp collector(req, {:cont, {:base_url, value}}) do
+      u = URI.parse(value)
+
+      params =
+        if q = u.query do
+          url_params =
+            String.split(q, ["&", "="]) |> Enum.chunk_every(2) |> Enum.map(&List.to_tuple/1)
+
+          update_collectable(req.params, url_params)
+        else
+          req.params
         end
 
-      Map.replace!(q, key, updated_value)
+      # See if old req.base_url is a prefix of new url via String.split
+      {new_url, new_path} =
+        case %URI{u | query: nil} |> URI.to_string() |> String.split(req.base_url) do
+          ["", path] -> {req.base_url, path}
+          [url] -> {url, ""}
+        end
+
+      struct!(req, params: params, base_url: new_url, path: new_path)
     end
 
-    defp collector(q, {:cont, {key, value}}) do
-      Map.replace!(q, key, value)
+    defp collector(req, {:cont, {key, value}}) when key in @collectable_struct_members do
+      Map.replace!(req, key, update_collectable(Map.get(req, key), value))
     end
 
-    defp collector(q, :done), do: q
-    defp collector(_q, :halt), do: :ok
+    defp collector(req, {:cont, {key, _value} = update})
+         when key in @replaceable_struct_members do
+      struct!(req, [update])
+    end
+
+    # ignore unknown keys
+    defp collector(req, {:cont, _}) do
+      req
+    end
+
+    defp collector(req, :done), do: req
+    defp collector(_req, :halt), do: :ok
+
+    defp update_collectable(current_value, new_value) when is_map(current_value) do
+      Enum.into(new_value, current_value)
+    end
+
+    defp update_collectable(current_value, new_value) when is_list(current_value) do
+      Enum.to_list(new_value) ++ current_value
+    end
   end
 end
