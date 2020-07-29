@@ -27,7 +27,8 @@ defmodule Quest.MixProject do
   defp deps do
     [
       {:httpoison, "~> 1.5", only: :test},
-      {:jason, "~> 1.1", only: :test}
+      {:jason, "~> 1.1"},
+      {:ecto, "~> 3.4"}
     ]
   end
 end
